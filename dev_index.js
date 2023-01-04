@@ -3,7 +3,7 @@ dotenv.config();
 
 var AWS = require('aws-sdk'),
         region = "ap-south-1",
-        secretName = "arn:aws:secretsmanager:ap-south-1:740247834186:secret:QA-k8CiYj",
+        secretName = "arn:aws:secretsmanager:ap-south-1:740247834186:secret:db_host-Psb5oi",
         secret,
         decodedBinarySecret;
 
