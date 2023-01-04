@@ -1,0 +1,47 @@
+name: Continuous Integration/ Continuous Deployment
+on:
+  pull_request_target:
+    types:
+      - closed
+    branches: [staging]
+
+jobs:
+  if_merged:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Docker Login
+      uses: docker/login-action@v2
+      with:
+        username: ${{secrets.DOCKER_USER}}
+        password: ${{secrets.DOCKER_PASSWORD}}
+
+    - name: adding aws credentials
+      run: sed -i 's|"access_key_id"|"${{secrets.ACCESS_KEY}}"|g;s|"secret_key_id"|"${{secrets.SECRET_KEY}}"|g' qa_index.js
+      shell: bash
+
+    - name: Build and push
+      uses: docker/build-push-action@v3
+      with:
+        context: qa.Dockerfile
+        push: true
+        tags: tibildocker/ingestion_ms:2
+
+    - name: Docker pull image and deploy from hub
+      env:
+        DOCKER_USER: ${{secrets.DOCKER_USER}}
+        DOCKER_PASSWORD: ${{secrets.DOCKER_PASSWORD}}
+      uses: appleboy/ssh-action@master
+      with:
+        HOST: ${{ secrets.QA_HOST }}
+        USERNAME: ${{ secrets.USERNAME }}
+        KEY: ${{ secrets.KEY }}
+        PORT: '22'
+        script: |
+          docker login
+          docker pull tibildocker/ingestion_ms
+          docker stop cqube_v5_ingest_app_2 || true
+          docker rm cqube_v5_ingest_app_2 || true
+          docker rmi tibildocker/ingestion_ms:2 || true
+          docker run -d --name cqube_v5_ingest_app_2 -p 3000:3000 --network cqube_v5_cqube_net tibildocker/ingestion_ms:2
