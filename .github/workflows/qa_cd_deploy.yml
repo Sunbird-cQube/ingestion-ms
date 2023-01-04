@@ -24,7 +24,8 @@ jobs:
     - name: Build and push
       uses: docker/build-push-action@v3
       with:
-        context: qa.Dockerfile
+        context: .
+        file: ./qa.Dockerfile
         push: true
         tags: tibildocker/ingestion_ms:2
 
