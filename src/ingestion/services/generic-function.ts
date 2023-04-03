@@ -98,7 +98,7 @@ export class GenericFunction {
     async getDate() {
         let yourDate = new Date();
         const formattedDate = yourDate.toLocaleDateString('en-GB', {
-            day: 'numeric', month: 'short', year: 'numeric'
+            day: '2-digit', month: 'short', year: 'numeric'
         }).replace(/ /g, '-');
         return formattedDate;
     }
