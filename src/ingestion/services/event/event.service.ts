@@ -41,7 +41,7 @@ export class EventService {
                         }
                         let folderName = await this.service.getDate();
                         if (invalidArray.length > 0) {
-                            file = `./error-files/` + `${eventName +'_' + inputData?.file_tracker_pid}` + '_errors.csv';
+                            file = `./error-files/` + `${eventName}_${inputData?.file_tracker_pid}_errors.csv`;
                             await this.service.writeToCSVFile(file, invalidArray);
 
                             if (process.env.STORAGE_TYPE === 'local') {

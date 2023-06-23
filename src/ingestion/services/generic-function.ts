@@ -1,16 +1,18 @@
-import {Injectable} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import Ajv from "ajv";
 import Ajv2019 from "ajv/dist/2019";
 import addFormats from "ajv-formats";
-import {InputSchema} from "../interfaces/Ingestion-data";
+import { InputSchema } from "../interfaces/Ingestion-data";
 import * as fs from 'fs';
-
 const path = require('path');
+const csv = require('fast-csv');
 
 const ajv = new Ajv2019();
 addFormats(ajv);
 
 const ObjectsToCsv = require('objects-to-csv');
+ajv.addKeyword({ keyword: 'indexes' })
+ajv.addKeyword({ keyword: 'psql_schema' })
 ajv.addKeyword({
     keyword: 'shouldnotnull',
     validate: (schema, data) => {
@@ -73,6 +75,7 @@ export class GenericFunction {
 
     // creating a lock to wait
     async writeToCSVFile(fileName, inputArray) {
+        return new Promise( async (resolve, reject) => {
         try {
             do {
                 // check is the lock is released
@@ -85,17 +88,27 @@ export class GenericFunction {
             } while (true);
             // get the lock on the file
             this.currentlyLockedFiles[fileName] = true;
-            const csv = new ObjectsToCsv(inputArray);
 
-            let response = await csv.toDisk(fileName, {append: true});
-            // delete the lock after writing
-            delete this.currentlyLockedFiles[fileName];
-            return response;
+            const stream = fs.createWriteStream(fileName);
+            await csv.write(inputArray, { headers: true})
+                .pipe(stream)
+                .on('finish', () => {
+                    console.log('CSV file has been written successfully');
+                    // delete the lock after writing
+                    delete this.currentlyLockedFiles[fileName];
+                    resolve('done')
+                })
+                .on('error', (err) => {
+                    console.error('Error writing CSV file:', err);
+                    reject(err)
+                });
         } catch (e) {
             console.error('writeToCSVFile: ', e.message);
             throw new Error(e);
         }
-    }
+    });
+
+} 
 
     ajvValidator(schema, inputData) {
         const isValid = ajv.validate(schema, inputData);
@@ -113,12 +126,11 @@ export class GenericFunction {
     }
 
     async formatDataToCSVBySchema(input: any, schema: InputSchema, addQuotes = true) {
-        const {properties} = schema;
+        const { properties } = schema;
         Object.keys(input).forEach(property => {
             if (properties[property]) {
                 if (addQuotes && properties[property].type === 'string') {
                     let inputData = this.removeNewLine(`${input[property]}`);
-                    inputData = inputData.replace(/"/g,'');
                     input[property] = `'${inputData}'`;
                 } else if (properties[property].type === 'integer' || properties[property].type === 'number' || properties[property].type === 'float') {
                     input[property] = Number(input[property]);
@@ -129,7 +141,7 @@ export class GenericFunction {
     }
 
     removeNewLine(input) {
-        return input.replace(/\n/g, '').replace('\'','');
+        return input.replace(/\n/g, '').replace('\'', '');
     }
 
     async getDate() {

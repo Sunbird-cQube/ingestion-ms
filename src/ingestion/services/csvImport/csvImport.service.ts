@@ -235,7 +235,7 @@ export class CsvImportService {
         const headers = {
             Authorization: request.headers.authorization,
         };       
-        const url: string = process.env.URL + `/ingestion/${ingestionType}`;
+        const url: string = process.env.URL + `/${ingestionType}`;
         const mainKey = ingestionType + '_name';    
         if(ingestionType === 'event'){
             postBody['program_name'] = program_name;   

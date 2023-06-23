@@ -36,7 +36,7 @@ export class DimensionService {
                         let file;
                         let folderName = await this.service.getDate();
                         if (invalidArray.length > 0) {
-                            file = `./error-files/` + `${dimensionName} + '_' + ${inputData?.file_tracker_pid} +'_errors.csv`;
+                            file = `./error-files/` + `${dimensionName}_${inputData?.file_tracker_pid}_errors.csv`;
                             await this.service.writeToCSVFile(file, invalidArray);
 
                             if (process.env.STORAGE_TYPE === 'local') {
