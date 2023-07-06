@@ -124,7 +124,7 @@ describe('EventService', () => {
             "file_tracker_pid": "school"
         };
 
-        let spy = jest.spyOn(genericFunc, 'writeToCSVFile').mockImplementation(() => new Promise((resolve, reject) => resolve('File uploaded')));
+        let spy = jest.spyOn(genericFunc, 'writeToCSVFile').mockImplementation(() => new Promise((resolve, reject) => resolve(null)));
 
         let resultOutput = {
             code: 200,
@@ -148,7 +148,7 @@ describe('EventService', () => {
             "file_tracker_pid": "school"
         };
 
-        let spy = jest.spyOn(genericFunc, 'writeToCSVFile').mockImplementation(() => new Promise((resolve, reject) => resolve('File uploaded')));
+        let spy = jest.spyOn(genericFunc, 'writeToCSVFile').mockImplementation(() => new Promise((resolve, reject) => resolve(null)));
 
         let resultOutput = {
             code: 200,
@@ -172,7 +172,7 @@ describe('EventService', () => {
             "file_tracker_pid": "school"
         };
 
-        let spy = jest.spyOn(genericFunc, 'writeToCSVFile').mockImplementation(() => new Promise((resolve, reject) => resolve('File uploaded')));
+        let spy = jest.spyOn(genericFunc, 'writeToCSVFile').mockImplementation(() => new Promise((resolve, reject) => resolve(null)));
 
         let resultOutput = {
             code: 200,
@@ -196,7 +196,7 @@ describe('EventService', () => {
             "file_tracker_pid": "school"
         };
 
-        let spy = jest.spyOn(genericFunc, 'writeToCSVFile').mockImplementation(() => new Promise((resolve, reject) => resolve('File uploaded')));
+        let spy = jest.spyOn(genericFunc, 'writeToCSVFile').mockImplementation(() => new Promise((resolve, reject) => resolve(null)));
 
         let resultOutput = {
             code: 200,
@@ -219,7 +219,7 @@ describe('EventService', () => {
             "file_tracker_pid": "school"
         };
 
-        let spy = jest.spyOn(genericFunc, 'writeToCSVFile').mockImplementation(() => new Promise((resolve, reject) => resolve('File uploaded')));
+        let spy = jest.spyOn(genericFunc, 'writeToCSVFile').mockImplementation(() => new Promise((resolve, reject) => resolve(null)));
 
         let resultOutput = {
             code: 200,
@@ -244,7 +244,7 @@ describe('EventService', () => {
             "file_tracker_pid": "school"
         };
 
-        let spy = jest.spyOn(genericFunc, 'writeToCSVFile').mockImplementation(() => new Promise((resolve, reject) => resolve('File uploaded')));
+        let spy = jest.spyOn(genericFunc, 'writeToCSVFile').mockImplementation(() => new Promise((resolve, reject) => resolve(null)));
 
         let resultOutput = {
             code: 200,
@@ -269,7 +269,7 @@ describe('EventService', () => {
             "file_tracker_pid": "school"
         };
 
-        let spy = jest.spyOn(genericFunc, 'writeToCSVFile').mockImplementation(() => new Promise((resolve, reject) => resolve('File uploaded')));
+        let spy = jest.spyOn(genericFunc, 'writeToCSVFile').mockImplementation(() => new Promise((resolve, reject) => resolve(null)));
 
         let resultOutput = {
             code: 200,
@@ -294,7 +294,7 @@ describe('EventService', () => {
             "file_tracker_pid": "school"
         };
 
-        let spy = jest.spyOn(genericFunc, 'writeToCSVFile').mockImplementation(() => new Promise((resolve, reject) => resolve('File uploaded')));
+        let spy = jest.spyOn(genericFunc, 'writeToCSVFile').mockImplementation(() => new Promise((resolve, reject) => resolve(null)));
 
         let resultOutput = {
             code: 200,

@@ -6,7 +6,6 @@ import {ReadStream} from "fs";
 import {IngestionDatasetQuery} from "../../query/ingestionQuery";
 import {DatabaseService} from '../../../database/database.service';
 import {Request} from "express";
-
 const fs = require('fs');
 const {parse} = require('@fast-csv/parse');
 
@@ -61,7 +60,7 @@ let csvImportEventSchema = {
 
 interface CSVInputBodyInterface {
     ingestion_type: string;
-    ingestion_name: string;
+    ingestion_name: string;                                     
     program_name?: string;
 }
 
@@ -91,8 +90,8 @@ export class CsvImportService {
                 const fileCompletePath = file.path;
                 const fileSize = file.size;
                 const uploadedFileName = file.originalname;
-
-                const queryStr = await IngestionDatasetQuery.createFileTracker(uploadedFileName, inputBody.ingestion_type, inputBody.ingestion_name, fileSize);
+               
+               const queryStr = await IngestionDatasetQuery.createFileTracker(uploadedFileName, inputBody.ingestion_type, inputBody.ingestion_name, fileSize);
                 const queryResult = await this.DatabaseService.executeQuery(queryStr.query, queryStr.values);
                 if (queryResult?.length === 1) {
                     this.asyncProcessing(inputBody, fileCompletePath, queryResult[0].pid, request);
@@ -100,6 +99,8 @@ export class CsvImportService {
                 } else {
                     resolve({code: 400, error: 'File is not Tracked'})
                 }
+            
+
             }
         });
     }
@@ -192,7 +193,7 @@ export class CsvImportService {
                             try {
                                 await fs.unlinkSync(fileCompletePath);
                                 if(ingestionType === 'dimension'){
-                                    await this.service.deleteLocalFile(`./input-files/${ingestionName}-dimension.data.csv`);
+                                     await this.service.deleteLocalFile(`./input-files/${ingestionName}-dimension.data.csv`);
                                 }
                                 if(ingestionType === 'event')
                                 {

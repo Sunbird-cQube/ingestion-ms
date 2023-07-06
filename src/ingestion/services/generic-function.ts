@@ -162,6 +162,9 @@ export class GenericFunction {
                     resolve('File deleted successfully! ' + fullFilePath);
                 });
             }
+            else {
+                resolve('File not present to be deleted' + fullFilePath)
+            }
         })
     }
 }

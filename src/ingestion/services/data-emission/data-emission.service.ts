@@ -86,7 +86,7 @@ export class DataEmissionService {
                             for (let record of ingestionTypeBodyArray) {
                                 const isValidSchema: any = this.service.ajvValidator(schema, record);
                                 if (isValidSchema.errors) {
-                                    record['error_description'] = isValidSchema.errors;
+                                    record['error_description'] = isValidSchema.errors.map(error => error.message);
                                     invalidArray.push(record);
                                     errorCounter = errorCounter + 1;
                                 } else {
@@ -121,7 +121,7 @@ export class DataEmissionService {
                             for (let record of ingestionTypeBodyArray) {
                                 const isValidSchema: any = this.service.ajvValidator(schema, record);
                                 if (isValidSchema.errors) {
-                                    record['error_description'] = isValidSchema.errors;
+                                    record['error_description'] = isValidSchema.errors.map(error => error.message);//push the records with error description
                                     invalidArray.push(record);
                                     errorCounter = errorCounter + 1;
                                 } else {

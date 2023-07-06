@@ -12,11 +12,11 @@ export const IngestionDatasetQuery = {
         return {query: queryStr, values: [eventName]};
     },
     async createFileTracker(uploadedFileName, ingestionType, ingestionName, fileSize) {
-        const queryStr = `INSERT INTO ingestion."FileTracker"(uploaded_file_name, ingestion_type, ingestion_name, file_status, filesize)
-	                       VALUES ($1, $2, $3, $4, $5) RETURNING pid`;
+        const queryStr = `INSERT INTO ingestion."FileTracker"(uploaded_file_name, ingestion_type, ingestion_name, file_status, filesize) VALUES ($1, $2, $3, $4, $5) RETURNING pid`;
         return {
             query: queryStr,
             values: [uploadedFileName, ingestionType, ingestionName, 'Upload_in_progress', fileSize]
+            
         };
     },
     async updateFileTracker(pid, fileStatus, ingestionName?: string) {

@@ -22,7 +22,7 @@ export class EventService {
                         for (let record of inputData.event) {
                             const isValidSchema: any = await this.service.ajvValidator(queryResult[0].schema, record);
                             if (isValidSchema.errors) {
-                                record['error_description'] = isValidSchema.errors;
+                                record['error_description'] = isValidSchema.errors.map(error => error.message);//push the records with error description
                                 invalidArray.push(record);
                                 errorCounter = errorCounter + 1;
                             } else {
