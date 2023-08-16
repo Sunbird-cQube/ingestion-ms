@@ -13,6 +13,7 @@ export class EventService {
         try {
             if (inputData.event_name) {
                 let eventName = inputData.event_name;
+                let isEnd = inputData?.isEnd;
                 let queryStr = await IngestionDatasetQuery.getEvents(eventName);
                 const queryResult = await this.DatabaseService.executeQuery(queryStr.query, queryStr.values);
                 if (queryResult?.length === 1) {
@@ -22,7 +23,7 @@ export class EventService {
                         for (let record of inputData.event) {
                             const isValidSchema: any = await this.service.ajvValidator(queryResult[0].schema, record);
                             if (isValidSchema.errors) {
-                                record['error_description'] = isValidSchema.errors.map(error => error.message);//push the records with error description
+                                record['error_description'] = isValidSchema.errors.map(error => error.instancePath?.slice(1,)+' '+ error.message);//push the records with error description
                                 invalidArray.push(record);
                                 errorCounter = errorCounter + 1;
                             } else {
@@ -43,7 +44,7 @@ export class EventService {
                         if (invalidArray.length > 0) {
                             file = `./error-files/` + `${eventName}_${inputData?.file_tracker_pid}_errors.csv`;
                             await this.service.writeToCSVFile(file, invalidArray);
-
+                            if(isEnd){                            
                             if (process.env.STORAGE_TYPE === 'local') {
                                 await this.uploadService.uploadFiles('local', `${process.env.MINIO_BUCKET}`, file, `ingestion_error/${eventName}/${folderName}/`);
                             } else if (process.env.STORAGE_TYPE === 'azure') {
@@ -53,7 +54,7 @@ export class EventService {
                             } else {
                                 await this.uploadService.uploadFiles('aws', `${process.env.AWS_BUCKET}`, file, `ingestion_error/${eventName}/${folderName}/`);
                             }
-
+                        }
                             if (inputData?.file_tracker_pid) {
                                 queryStr = await IngestionDatasetQuery.updateCounter(inputData.file_tracker_pid, '', errorCounter);
                                 await this.DatabaseService.executeQuery(queryStr.query, queryStr.values);
@@ -64,7 +65,7 @@ export class EventService {
                         if (validArray.length > 0) {
                             file = `./input-files/` + fileName + '.csv';
                             await this.service.writeToCSVFile(file, validArray);
-
+                            if(isEnd){
                             if (process.env.STORAGE_TYPE === 'local') {
                                 await this.uploadService.uploadFiles('local', `${process.env.MINIO_BUCKET}`, file, `process_input/${eventName}/${folderName}/`);
                             } else if (process.env.STORAGE_TYPE === 'azure') {
@@ -74,7 +75,7 @@ export class EventService {
                             } else {
                                 await this.uploadService.uploadFiles('aws', `${process.env.AWS_BUCKET}`, file, `process_input/${eventName}/${folderName}/`);
                             }
-
+                        }
                             if (inputData?.file_tracker_pid) {
                                 queryStr = await IngestionDatasetQuery.updateCounter(inputData.file_tracker_pid, validCounter, '');
                                 await this.DatabaseService.executeQuery(queryStr.query, queryStr.values);

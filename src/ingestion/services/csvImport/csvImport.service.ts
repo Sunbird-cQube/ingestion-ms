@@ -200,7 +200,6 @@ export class CsvImportService {
                                     await this.service.deleteLocalFile(`./input-files/${ingestionName}-event.data.csv`);
                                 }
                                 await this.service.deleteLocalFile(`./error-files/${ingestionName}_${fileTrackerPid}_errors.csv`);
-                                console.log("error file should be deleted");
                             } catch (e) {
                                 console.error('csvImport.service.file delete error: ', e);
                             }
@@ -245,7 +244,7 @@ export class CsvImportService {
 
         postBody[ingestionType] = [...ingestionTypeBodyArray];
         postBody.file_tracker_pid = fileTrackerPid;
-       
+        postBody.isEnd = isEnd;
         try {
             let response = await this.http.post<CSVAPIResponse>(url, postBody, {headers: headers});
             apiResponseData.push(response.data);

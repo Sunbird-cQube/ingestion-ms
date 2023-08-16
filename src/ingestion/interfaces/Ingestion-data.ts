@@ -62,6 +62,8 @@ export class IEvent {
     event_name: string
     @ApiProperty({isArray: true, type: () => eventObj})
     event: eventObj[];
+    @ApiProperty()
+    isEnd: boolean;
 }
 
 export class datasetobj {

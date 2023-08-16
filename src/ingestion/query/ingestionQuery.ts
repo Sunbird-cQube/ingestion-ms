@@ -32,7 +32,7 @@ export const IngestionDatasetQuery = {
         return {query: queryStr, values: [pid, fileStatus]};
     },
     async getFileStatus(fileName, ingestionType, ingestionName) {
-        const queryStr = `SELECT pid,file_status,created_at, total_data_count, processed_data_count,error_data_count
+        const queryStr = `SELECT pid, uploaded_file_name AS file_name ,file_status,created_at, total_data_count, processed_data_count,error_data_count
         FROM ingestion."FileTracker" 
         WHERE uploaded_file_name = $1 
         AND ingestion_type=$2 

@@ -13,6 +13,7 @@ export class DimensionService {
         try {
             if (inputData.dimension_name) {
                 const dimensionName = inputData.dimension_name;
+                let isEndOfFile = inputData?.isEnd;
                 let queryStr = await IngestionDatasetQuery.getDimension(dimensionName);
                 const queryResult = await this.DatabaseService.executeQuery(queryStr.query, queryStr.values);
                 if (queryResult?.length === 1) {
@@ -22,7 +23,7 @@ export class DimensionService {
                         for (let record of inputData.dimension) {
                             const isValidSchema: any = await this.service.ajvValidator(queryResult[0].schema, record);
                             if (isValidSchema.errors) {
-                                record['error_description'] = isValidSchema.errors.map(error => error.message);//push the records with error description
+                                record['error_description'] = isValidSchema.errors.map(error => error.instancePath?.slice(1,)+' '+ error.message);//push the records with error description
                                 invalidArray.push(record);
                                 errorCounter = errorCounter + 1;
                             } else {
@@ -38,7 +39,9 @@ export class DimensionService {
                         if (invalidArray.length > 0) {
                             file = `./error-files/` + `${dimensionName}_${inputData?.file_tracker_pid}_errors.csv`;
                             await this.service.writeToCSVFile(file, invalidArray);
+                            if(isEndOfFile){
 
+                            
                             if (process.env.STORAGE_TYPE === 'local') {
                                 await this.uploadService.uploadFiles('local', `${process.env.MINIO_BUCKET}`, file, `ingestion_error/${dimensionName}/${folderName}/`);
                             } else if (process.env.STORAGE_TYPE === 'azure') {
@@ -48,7 +51,7 @@ export class DimensionService {
                             } else {
                                 await this.uploadService.uploadFiles('aws', `${process.env.AWS_BUCKET}`, file, `ingestion_error/${dimensionName}/${folderName}/`);
                             }
-
+                        }    
 
                             if (inputData?.file_tracker_pid) {
                                 queryStr = await IngestionDatasetQuery.updateCounter(inputData.file_tracker_pid, '', errorCounter);
@@ -58,7 +61,7 @@ export class DimensionService {
                         if (validArray.length > 0) {
                             file = `./input-files/` + dimensionName + '-dimension.data.csv';
                             await this.service.writeToCSVFile(file, validArray);
-
+                            if(isEndOfFile){                            
                             if (process.env.STORAGE_TYPE === 'local') {
                                 await this.uploadService.uploadFiles('local', `${process.env.MINIO_BUCKET}`, file, `process_input/dimensions/${folderName}/`);
                             } else if (process.env.STORAGE_TYPE === 'azure') {
@@ -68,7 +71,7 @@ export class DimensionService {
                             } else {
                                 await this.uploadService.uploadFiles('aws', `${process.env.AWS_BUCKET}`, file, `process_input/dimensions/${folderName}/`);
                             }
-
+                         }    
                             if (inputData?.file_tracker_pid) {
                                 queryStr = await IngestionDatasetQuery.updateCounter(inputData.file_tracker_pid, validCounter, '');
                                 await this.DatabaseService.executeQuery(queryStr.query, queryStr.values);

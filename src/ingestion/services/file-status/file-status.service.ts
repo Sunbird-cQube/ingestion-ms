@@ -51,9 +51,10 @@ export class FileStatusService {
                 const queryStr = await IngestionDatasetQuery.getFileStatus(FileName, ingestionType, ingestionName);
                 const queryResult = await this.DatabaseService.executeQuery(queryStr.query, queryStr.values);
                 if (queryResult.length > 0) {
+                    const latestRecord = queryResult[0];
                     return {
                         "code": 200,
-                        "response": queryResult
+                        "response": latestRecord
                     }
                 }
                 else {
