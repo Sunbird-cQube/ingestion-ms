@@ -1,0 +1,175 @@
+swagger: "2.0"
+info:
+  version: "1.0.0"
+  title: 'CQUBE'
+
+basePath: "/v0"
+
+tags:
+  - name: "spec"
+  - name: "ingestion"
+
+schemes:
+  - "https"
+  - "http"
+
+paths:
+  /ingestion/generatejwt:
+    get:
+      tags:
+        - 'ingestion'
+      summary: 'Generate JWT'
+      description: 'Generate a JWT token'
+      produces:
+        - 'application/json'
+      responses:
+        200:
+          description: 'Token generated successfully'
+          schema:
+            type: 'object'
+            properties:
+              token:
+                type: 'string'
+                example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+        400:
+          description: 'Error generating token'
+          schema:
+            type: 'object'
+            properties:
+              error:
+                type: 'string'
+                example: 'Could not generate token'
+                 
+  /ingestion/new_programs:
+    post:
+      tags:
+        - "ingestion"
+      summary: "CSV Import"
+      description: "CSV Import"
+      operationId: "csvImport"
+      consumes:
+        - "multipart/form-data"
+      produces:
+        - "application/json"
+      parameters:
+        - in: "formData"
+          name: "body"
+          type: file
+          required: true
+        - in: "formData"
+          name: "ingestion_type"
+          type: string
+          required: true
+        - in: "formData"
+          name: "ingestion_name"
+          type: string
+          required: true
+
+      responses:
+        200:
+          description: "File is being processed"
+          schema:
+            type: "object"
+            properties:
+              message:
+                type: "string"
+                example: "File is being processed"
+        400:
+          description: "Something went wrong"
+          schema:
+            $ref: "#/definitions/generic_error"
+  /ingestion/file-status:
+    get:
+      tags:
+        - "ingestion"
+      summary: "Get the status of file"
+      description: "Get the status of file"
+      operationId: "getFileStatus"
+      produces:
+        - "application/json"
+      parameters:
+        - in: "query"
+          name: "filename"
+          type: string
+          required: true
+        - in: "query"
+          name: "ingestion_type"
+          type: string
+          required: true
+        - in: "query"
+          name: "ingestion_name"
+          type: string
+          required: true
+      responses:
+        200:
+          description: "Get the file status"
+          schema:
+            type: "object"
+            properties:
+             response:
+                type: "array"
+                items:
+                  type: "object"
+                  properties:
+                    file_status:
+                      type: "string"
+                      example: uploaded
+                    pid:
+                      type: "string"
+                      example: 1
+                    created_at:
+                      type: "string"
+                      example: "2023-01-27 18:18:08.007215"
+                    total_data_count:
+                      type: "integer"
+                      example: 2000
+                    processed_data_count:
+                      type: "integer"
+                      example: 1199
+                    error_data_count:
+                      type: "integer"
+                      example: 1
+        400:
+          description: "Something went wrong"
+          schema:
+            $ref: "#/definitions/generic_error"
+
+  /ingestion/national_programs:
+    post:
+      tags:
+        - "ingestion"
+      summary: "CSV emission"
+      description: "CSV emission"
+      operationId: "emission"
+      consumes:
+        - "multipart/form-data"
+      produces:
+        - "application/json"
+      parameters:
+        - in: "formData"
+          name: "body"
+          type: file
+          required: true
+
+
+      responses:
+        200:
+          description: "File uploaded successfully"
+          schema:
+            type: "object"
+            properties:
+              message:
+                type: "string"
+                example: "File uploaded successfully"
+        400:
+          description: "Something went wrong"
+          schema:
+            $ref: "#/definitions/generic_error"
+
+definitions:
+  generic_error:
+      type: "object"
+      properties:
+        message:
+          type: "string"
+          example: "Invalid Input"
