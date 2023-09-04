@@ -146,7 +146,7 @@ export class GenericFunction {
 
     async getDate() {
         let yourDate = new Date();
-        const formattedDate = yourDate.toLocaleDateString('en-GB', {
+        let formattedDate = yourDate.toLocaleDateString('en-GB', {
             day: '2-digit', month: 'short', year: 'numeric'
         }).replace(/ /g, '-');
         if(formattedDate.includes('Sept')){            
