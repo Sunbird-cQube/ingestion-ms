@@ -149,6 +149,9 @@ export class GenericFunction {
         const formattedDate = yourDate.toLocaleDateString('en-GB', {
             day: '2-digit', month: 'short', year: 'numeric'
         }).replace(/ /g, '-');
+        if(formattedDate.includes('Sept')){            
+            formattedDate = formattedDate.replace("Sept","Sep");        
+        }
         return formattedDate;
     }
 
