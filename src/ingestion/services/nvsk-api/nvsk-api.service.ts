@@ -104,8 +104,7 @@ export class NvskApiService {
                      .on('error', async (error) => {
                         const queryStr = await IngestionDatasetQuery.insertIntoEmission(pgname, url,jwtToken.split(' ')[1], error)
                         const result = await this.databaseService.executeQuery(queryStr.query, queryStr.values);
-                        
-                        this.service.deleteLocalFile(fileName);
+                        this.service.deleteLocalFile(fileName);                        
                         console.error('Error processing CSV:', error);
                      });
                      if((urlData?.indexOf(data) === urlData?.length -1) && (data.urls?.indexOf(url) === data.urls?.length - 1)){
@@ -123,18 +122,21 @@ export class NvskApiService {
    async scheduleAdapters(){   
       try {
          let url = `${process.env.SPEC_URL}` + '/schedule'
-        
-         let scheduleBody = {
-            "processor_group_name": "Run_adapters",
-            "scheduled_at": " 0 */5 * * * ?"
-         }
-         let scheduleResult = await this.httpService.post(url, scheduleBody)
-         console.log('The schedule result is:',scheduleResult?.data['message']);
-         if (scheduleResult.status === 200) {
-            return { code: 200, message: scheduleResult?.['data']['message'] }
-         } else {
-            return { code: 400, error: "Adapter schedule failed" }
-         }
+         let processorGroups = ['Run_adapters','onestep_dataingestion_aws'];
+         for(let pgName of processorGroups){
+            let scheduleBody = {
+               "processor_group_name": `${pgName}`,
+               "scheduled_at": "0 */7 * * * ?"
+            }
+            console.log("The schedule is:", scheduleBody);
+            let scheduleResult = await this.httpService.post(url, scheduleBody)
+            console.log('The schedule result is:',scheduleResult?.data['message']);
+            if (scheduleResult.status === 200) {
+               return { code: 200, message: scheduleResult?.['data']['message'] }
+            } else {
+               return { code: 400, error: "Adapter schedule failed" }
+            }
+         }         
       } catch (err) {
          console.log("error for adapters is:", err);
       }
