@@ -284,7 +284,7 @@ export class IngestionController {
         }
     }
     @Post('/data-emitter')
-    @UseGuards(JwtGuard)
+    // @UseGuards(JwtGuard)
     async fetchData(@Body()inputData:RawDataPullBody ,@Res()response: Response,@Req() request: Request){
         try {
             const result: any = await this.nvskService.getEmitterData(inputData?.program_names, request);

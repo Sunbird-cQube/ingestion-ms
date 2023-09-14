@@ -28,8 +28,14 @@ export class NvskApiService {
          "program_names": names
       }
       try {
+         let jwtToken;
+         const tokenResult = await this.httpService.get(process.env.URL + '/generatejwt')
+         if(tokenResult.status === 200){
+            jwtToken = tokenResult?.data
+         }
+         jwtToken = 'Bearer'+' '+jwtToken;
          const headers = {
-            Authorization: request.headers.authorization
+            Authorization: jwtToken
         }; 
          const result = await this.httpService.post(process.env.NVSK_URL + '/getRawData', body,{headers: headers})
          if (result?.data['code'] === 200) {
@@ -117,9 +123,10 @@ export class NvskApiService {
    async scheduleAdapters(){   
       try {
          let url = `${process.env.SPEC_URL}` + '/schedule'
+        
          let scheduleBody = {
             "processor_group_name": "Run_adapters",
-            "scheduled_at": "* 0/7 * * * ?"
+            "scheduled_at": " 0 */5 * * * ?"
          }
          let scheduleResult = await this.httpService.post(url, scheduleBody)
          console.log('The schedule result is:',scheduleResult?.data['message']);
