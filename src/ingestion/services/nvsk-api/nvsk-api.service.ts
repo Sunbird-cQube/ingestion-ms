@@ -72,6 +72,7 @@ export class NvskApiService {
                            filteredCsvStream.write(Object.keys(row).join(',') + '\n');
                            isFirstRow = false;
                         }
+                        
                         if (row['state_code'].slice(1, -1) === process.env.STATE_ID) {
                            filteredCsvStream.write(Object.values(row).join(',') + '\n');
                         }
@@ -121,6 +122,7 @@ export class NvskApiService {
    }
    async scheduleAdapters(){   
       try {
+         let promises=[]
          let url = `${process.env.SPEC_URL}` + '/schedule'
          let processorGroups = ['Run_adapters','onestep_dataingestion_aws'];
          for(let pgName of processorGroups){
@@ -129,14 +131,9 @@ export class NvskApiService {
                "scheduled_at": "0 */7 * * * ?"
             }
             console.log("The schedule is:", scheduleBody);
-            let scheduleResult = await this.httpService.post(url, scheduleBody)
-            console.log('The schedule result is:',scheduleResult?.data['message']);
-            if (scheduleResult.status === 200) {
-               return { code: 200, message: scheduleResult?.['data']['message'] }
-            } else {
-               return { code: 400, error: "Adapter schedule failed" }
-            }
-         }         
+            promises.push(this.httpService.post(url, scheduleBody))
+         }
+         await Promise.all(promises)         
       } catch (err) {
          console.log("error for adapters is:", err);
       }
