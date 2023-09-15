@@ -10,15 +10,17 @@ import {
     Result, EmissionBody, RawDataPullBody
 } from '../interfaces/Ingestion-data';
 import {
+    BadRequestException,
     Body,
     Controller, FileTypeValidator,
     Get,
-    MaxFileSizeValidator,
+    Logger,
     ParseFilePipe,
     Post,
     Query,
     Res,
     UploadedFile,
+    UploadedFiles,
     UseInterceptors,
     Put,
     UseGuards, Req, Param
@@ -29,7 +31,6 @@ import {RawDataImportService} from '../services/rawDataImport/rawDataImport.serv
 import {EventService} from '../services/event/event.service';
 import {Response, Request} from 'express';
 import {CsvImportService} from "../services/csvImport/csvImport.service";
-import {FileInterceptor} from "@nestjs/platform-express";
 import {diskStorage} from "multer";
 import {FileIsDefinedValidator} from "../validators/file-is-defined-validator";
 import {FileStatusService} from '../services/file-status/file-status.service';
@@ -43,6 +44,13 @@ import { NvskApiService } from '../services/nvsk-api/nvsk-api.service';
 import { UploadDimensionFileService } from '../services/upload-dimension-file/upload-dimension-file.service';
 import { GrammarService } from '../services/grammar/grammar.service';
 import { GenericFunction } from '../services/generic-function';
+import {
+    FileFieldsInterceptor,
+    FileInterceptor,
+} from '@nestjs/platform-express';
+import { FileType, FileValidateRequest } from '../dto/request';
+import * as fs from 'fs';
+import { ValidatorService } from '../services/validator/validator.service';
 
 let validateBodySchema = {
     "type": "object",
@@ -65,9 +73,18 @@ let validateBodySchema = {
     ]
 };
 
+const defaultStorageConfig = diskStorage({
+    destination: './upload',
+    filename: (req, file, cb) => {
+      cb(null, Date.now() + '-' + file.originalname);
+    },
+});
+
 @ApiTags('ingestion')
 @Controller('')
 export class IngestionController {
+    private logger: Logger;
+
     constructor(
         private datasetService: DatasetService, private dimensionService: DimensionService
         , private eventService: EventService, private csvImportService: CsvImportService, private fileStatus: FileStatusService, private updateFileStatus: UpdateFileStatusService,
@@ -76,7 +93,9 @@ export class IngestionController {
         private nvskService:NvskApiService,
         private grammarService: GrammarService,
         private service: GenericFunction,
-        private uploadDimension:UploadDimensionFileService) {
+        private uploadDimension:UploadDimensionFileService,
+        private validatorService: ValidatorService) {
+        this.logger = new Logger(IngestionController.name);
     }
 
     @Get('generatejwt')
@@ -327,7 +346,7 @@ export class IngestionController {
         })
     }))
 
-    @Post('/validate')
+    @Post('/validate-old')
     @ApiConsumes('multipart/form-data')
     async validateEventOrDimension(@Body() body: any, @Res()response: Response, @UploadedFile(
         new ParseFilePipe({
@@ -356,5 +375,101 @@ export class IngestionController {
             response.status(400).send({message: e.error || e.message || e});
             // throw new Error(e);
         }
+    }
+
+    @Post('validate')
+    @UseInterceptors(
+        FileFieldsInterceptor(
+            [
+                { name: 'grammar', maxCount: 1 },
+                { name: 'data', maxCount: 1 },
+            ],
+            {
+                storage: defaultStorageConfig,
+                fileFilter(req, file, callback) {
+                if (file.mimetype !== 'text/csv') {
+                    return callback(
+                    new BadRequestException('Only CSV files are allowed'),
+                    false,
+                    );
+                }
+                callback(null, true);
+                },
+            },
+        )
+    )
+    uploadFileN(
+        @UploadedFiles()
+        files: {
+        grammar?: Express.Multer.File[];
+        data?: Express.Multer.File[];
+        },
+        @Body() body: FileValidateRequest,
+    ) {
+        this.logger.debug(files.grammar);
+        const grammarFilePath = files.grammar[0].path;
+
+        if (!grammarFilePath || !fs.existsSync(grammarFilePath))
+        throw new BadRequestException('Grammar file is required');
+
+        const grammarContent = fs.readFileSync(grammarFilePath, 'utf8');
+        const dataFilePath = files?.data ? files?.data[0]?.path : undefined;
+
+        let resp;
+        switch (body.type.trim()) {
+        case FileType.DimensionGrammar:
+            resp =
+            this.validatorService.checkDimensionGrammarForValidationErrors(
+                grammarContent,
+            );
+            break;
+        case FileType.DimensionData:
+            if (!dataFilePath || !fs.existsSync(dataFilePath))
+            throw new BadRequestException('Data file is required');
+
+            resp = this.validatorService.checkDimensionDataForValidationErrors(
+            grammarContent,
+            fs.readFileSync(dataFilePath, 'utf8'),
+            );
+            break;
+        case FileType.EventGrammar:
+            resp =
+            this.validatorService.checkEventGrammarForValidationErrors(
+                grammarContent,
+            );
+            break;
+        case FileType.EventData:
+            if (!dataFilePath || !fs.existsSync(dataFilePath))
+            throw new BadRequestException('Data file is required');
+
+            resp = this.validatorService.checkEventDataForValidationErrors(
+            grammarContent,
+            fs.readFileSync(dataFilePath, 'utf8'),
+            );
+            break;
+        default:
+            throw new BadRequestException('Invalid file type');
+        }
+
+        // delete the files
+        if (grammarFilePath) fs.unlinkSync(grammarFilePath);
+        if (dataFilePath) fs.unlinkSync(dataFilePath);
+
+        return resp;
+    }
+
+    @Post('bulk')
+    @UseInterceptors(
+        FileInterceptor('folder', {
+        storage: defaultStorageConfig,
+        }),
+    )
+    async uploadBulkZip(@UploadedFile() file: Express.Multer.File) {
+        const zipFilePath = file.path;
+
+        const resp = await this.validatorService.handleZipFile(zipFilePath);
+        // delete the file
+        if (zipFilePath) fs.unlinkSync(zipFilePath);
+        return resp;
     }
 }

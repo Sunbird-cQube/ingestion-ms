@@ -7,11 +7,11 @@ export class GrammarService {
     }
 
     async getEventSchemas() {
-        return await this._databaseService.executeQuery(`select id, name, schema from spec."EventGrammar" WHERE eventType='EXTERNAL'`);
+        return await this._databaseService.executeQuery(`select id, name, schema from spec."EventGrammar" WHERE "eventType"='EXTERNAL'`);
     }
 
     async getDimensionSchemas() {
-        return await this._databaseService.executeQuery(`select id, name, schema from spec."DimensionGrammar" WHERE dimensionType='EXTERNAL'`);
+        return await this._databaseService.executeQuery(`select id, name, schema from spec."DimensionGrammar" WHERE "dimensionType"='EXTERNAL'`);
     }
 
     async getEventSchemaByID(id) {
