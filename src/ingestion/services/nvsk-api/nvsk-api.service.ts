@@ -124,14 +124,11 @@ export class NvskApiService {
       try {
          let promises=[]
          let url = `${process.env.SPEC_URL}` + '/schedule'
-         let processorGroups = ['Run_adapters','onestep_dataingestion_aws'];
+         let processorGroups = [{"processor_group_name":"Run_adapters","scheduled_at":"0 */7 * * * ?"},
+            {"processor_group_name":"onestep_dataingestion_aws","scheduled_at":"0 */9 * * * ?"}];
          for(let pgName of processorGroups){
-            let scheduleBody = {
-               "processor_group_name": `${pgName}`,
-               "scheduled_at": "0 */7 * * * ?"
-            }
-            console.log("The schedule is:", scheduleBody);
-            promises.push(this.httpService.post(url, scheduleBody))
+            console.log("The schedule is:", pgName);
+            promises.push(this.httpService.post(url, pgName))
          }
          await Promise.all(promises)         
       } catch (err) {
