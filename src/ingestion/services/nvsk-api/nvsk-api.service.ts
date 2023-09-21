@@ -74,6 +74,13 @@ export class NvskApiService {
                         }
                         
                         if (row['state_code'].slice(1, -1) === process.env.STATE_ID) {
+                           for (const key in row) {
+                              if (Object.hasOwnProperty.call(row, key)) {
+                                  const originalValue = row[key];
+                                  const modifiedValue = originalValue.includes(',') ? `"${originalValue}"` : originalValue;
+                                  row[key] = modifiedValue;
+                              }
+                          }
                            filteredCsvStream.write(Object.values(row).join(',') + '\n');
                         }
                      })
