@@ -7,7 +7,11 @@ import { BlobServiceClient } from "@azure/storage-blob";
 import { lookup } from "mime-types";
 import { Client } from "minio";
 import { objectstorage } from "oci-sdk";
+import { ObjectStorageClient, models } from "oci-objectstorage";
 import * as common from "oci-common";
+import { resolve } from "path";
+import { rejects } from "assert";
+import { error } from "console";
 interface FileStructure {
   fileFullPath: string;
   fileName: string;
@@ -17,20 +21,20 @@ interface FileStructure {
 export class UploadService {
   // using default provider ~/.oci/config
   private provider: common.ConfigFileAuthenticationDetailsProvider;
-  private oracleObjectStorageClient;
+  private oracleObjectStorageClient: objectstorage.ObjectStorageClient;
 
   private blobServiceClient;
   private connectionStr: string;
   private containerName: string;
   private minioClient: Client;
   constructor() {
-    if (process.env.STORAGE_TYPE === "oracle") {
-      this.provider = new common.ConfigFileAuthenticationDetailsProvider();
+    if (process.env.STORAGE_TYPE === "oracle") {      
+      this.provider = new common.ConfigFileAuthenticationDetailsProvider(       
+      );
       this.oracleObjectStorageClient = new objectstorage.ObjectStorageClient({
         authenticationDetailsProvider: this.provider,
       });
-    }
-    else if (process.env.STORAGE_TYPE === "local") {
+    } else if (process.env.STORAGE_TYPE === "local") {
       this.minioClient = new Client({
         endPoint: process.env.MINIO_END_POINT,
         port: +process.env.MINIO_PORT,
@@ -38,10 +42,8 @@ export class UploadService {
         accessKey: process.env.MINIO_ACCESS_KEY,
         secretKey: process.env.MINIO_SECRET_KEY,
       });
-
     }
   }
-
 
   /**
    * To upload files to
@@ -121,7 +123,7 @@ export class UploadService {
       accessKeyId: process.env.AWS_ACCESS_KEY,
       secretAccessKey: process.env.AWS_SECRET_KEY,
     });
-    return new Promise( (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       // file name
       const params = {
         Bucket: bucket,
@@ -139,22 +141,30 @@ export class UploadService {
     });
   }
 
-  public fileDownloaderUrl(fileName: string) {
-    if (process.env.STORAGE_TYPE === 'aws') {
+  /**
+   * Generates a pre-signed URL for downloading files from various storage providers.
+   * @param fileName - The name of the file to be downloaded.
+   * @param fileFullPath - The full path of the file (optional) only required for oracle.
+   * @returns A Promise that resolves to the pre-signed URL for downloading the file.
+   */
+
+  public async fileDownloaderUrl(fileName: string, fileFullPath?: string) {
+    try {    
+    if (process.env.STORAGE_TYPE === "aws") {
       const s3 = new AWS.S3({
         signatureVersion: "v4",
         accessKeyId: process.env.AWS_ACCESS_KEY,
         secretAccessKey: process.env.AWS_SECRET_KEY,
-        region: process.env.AWS_REGION
+        region: process.env.AWS_REGION,
       });
       return new Promise((resolve, reject) => {
         // file name
         const params = {
           Bucket: process.env.AWS_BUCKET,
           Key: fileName,
-          Expires: 3600
+          Expires: 3600,
         };
-        s3.getSignedUrl('getObject', params, (err, url) => {
+        s3.getSignedUrl("getObject", params, (err, url) => {
           if (err) {
             reject(err);
           } else {
@@ -162,82 +172,138 @@ export class UploadService {
           }
         });
       });
-    }
-    else if (process.env.STORAGE_TYPE === 'local') {
+    } else if (process.env.STORAGE_TYPE === "local") {
       const minioClient = new Client({
-        endPoint: process.env.MINIO_END_POINT,
-        port: 9000,
-        useSSL: false,
+        endPoint: process.env.MINIO_URL,
+        port: 443,
+        useSSL: true,
         accessKey: process.env.MINIO_ACCESS_KEY,
         secretKey: process.env.MINIO_SECRET_KEY,
       });
       return new Promise((resolve, reject) => {
-        minioClient.presignedUrl('GET', process.env.MINIO_BUCKET, fileName, 3600, function (err, presignedUrl) {
-          if (err) {
-            console.log(err)
-          } else {
-            resolve(presignedUrl)
+        minioClient.presignedUrl(
+          "GET",
+          process.env.MINIO_BUCKET,
+          fileName,
+          3600,
+          function (err, presignedUrl) {
+            if (err) {
+              reject(err);
+              console.log(err);
+            } else {
+              resolve(presignedUrl);
+            }
           }
-        });
-      })
+        );
+      });
+    } else if (process.env.STORAGE_TYPE === "oracle") {
+      const request: models.CreatePreauthenticatedRequestDetails = {
+        name: "example",
+        objectName: `${fileFullPath + "/" + fileName}`,
+        accessType:
+          models.CreatePreauthenticatedRequestDetails.AccessType.ObjectRead, // Adjust access type based on your requirement
+        timeExpires: new Date(Date.now() + 3600000), // Adjust the expiration time as per your requirement
+      };
+      console.log("The request is:", request);
+      const createRequest = {
+        namespaceName: process.env.ORACLE_NAMESPACE,
+        bucketName: process.env.ORACLE_BUCKET,
+        createPreauthenticatedRequestDetails: request,
+      };
 
+      const response =
+        await this.oracleObjectStorageClient.createPreauthenticatedRequest(
+          createRequest
+        );
+      return response?.preauthenticatedRequest?.fullPath;
     }
+  }catch(error){
+    throw new Error('File download URL generation failed');
+  }
   }
 
   public getFolderNames(folderName: string) {
-    if (process.env.STORAGE_TYPE === 'aws') {
+    if (process.env.STORAGE_TYPE === "aws") {
       const s3 = new AWS.S3({
         signatureVersion: "v4",
         accessKeyId: process.env.AWS_ACCESS_KEY,
         secretAccessKey: process.env.AWS_SECRET_KEY,
-        region: 'ap-south-1'
+        region: "ap-south-1",
       });
       return new Promise((resolve, reject) => {
         // file name
         const params = {
           Bucket: process.env.AWS_BUCKET,
-          Prefix: folderName+'/',
-          Delimiter: '/'
+          Prefix: folderName + "/",
+          Delimiter: "/",
         };
 
         s3.listObjects(params, async (err, data) => {
           if (err) {
             reject(err);
           } else {
-            const folderNames = data.CommonPrefixes.map(prefix => prefix.Prefix);
+            const folderNames = data.CommonPrefixes.map(
+              (prefix) => prefix.Prefix
+            );
             resolve(folderNames);
           }
         });
       });
-    } else if (process.env.STORAGE_TYPE === 'local') {
-      return new Promise((resolve,reject)=>{
-      let minioFolderNames = []
-        this.minioClient.listObjects(process.env.MINIO_BUCKET, folderName, true)
-        .on('data', (obj) => {         
-          minioFolderNames.push(obj.name?.split('/')[1]);
-        })
-        .on('error', (err) => {
-          console.error('Error:', err);
-          reject(err);
-        })
-        .on('end', () => {
-          console.log("the object names are:",minioFolderNames);
-          resolve(minioFolderNames)
-        });
-    });
-  }
-}
-
-  public async getFolderObjects(folderName){
-    
-    if (process.env.STORAGE_TYPE == 'aws') {
-     const result =  await this.getObjectsFromS3(folderName);
-     return result;
-    } else if (process.env.STORAGE_TYPE == 'local') {
-     const result =  await  this.getObjectsFromMinio(folderName);
-     return result;
+    } else if (process.env.STORAGE_TYPE === "local") {
+      return new Promise((resolve, reject) => {
+        let minioFolderNames = [];
+        this.minioClient
+          .listObjects(process.env.MINIO_BUCKET, folderName, true)
+          .on("data", (obj) => {
+            minioFolderNames.push(obj.name?.split("/")[1]);
+          })
+          .on("error", (err) => {
+            console.error("Error:", err);
+            reject(err);
+          })
+          .on("end", () => {
+            console.log("the object names are:", minioFolderNames);
+            resolve(minioFolderNames);
+          });
+      });
+    } else if (process.env.STORAGE_TYPE === "oracle") {
+      return new Promise(async (resolve, reject) => {
+        try {
+          const listObjectsRequest = {
+            namespaceName: process.env.ORACLE_NAMESPACE,
+            bucketName: process.env.ORACLE_BUCKET,
+            prefix: folderName + "/",
+          };
+          const listObjectsResponse =
+            await this.oracleObjectStorageClient.listObjects(listObjectsRequest);
+          const folderNames = new Set();
+          for (const object of listObjectsResponse?.listObjects?.objects) {
+            const name = object.name.split("/")[1];
+            if (name && name.length > 0) {
+              folderNames.add(name);
+            }
+          }
+          resolve(Array.from(folderNames));
+        } catch (error) {
+          console.error("Oracle Object Storage Error:", error)
+          reject(error)
+        }
+      
+      });
     }
+  }
 
+  public async getFolderObjects(folderName) {
+    if (process.env.STORAGE_TYPE == "aws") {
+      const result = await this.getObjectsFromS3(folderName);
+      return result;
+    } else if (process.env.STORAGE_TYPE == "local") {
+      const result = await this.getObjectsFromMinio(folderName);
+      return result;
+    } else if (process.env.STORAGE_TYPE == "oracle") {
+      const result = await this.getObjectsFromOracle(folderName);
+      return result;
+    }
   }
 
   public async getObjectsFromS3(folderName: string) {
@@ -245,7 +311,7 @@ export class UploadService {
       signatureVersion: "v4",
       accessKeyId: process.env.AWS_ACCESS_KEY,
       secretAccessKey: process.env.AWS_SECRET_KEY,
-      region: 'ap-south-1'
+      region: "ap-south-1",
     });
     return new Promise((resolve, reject) => {
       // file name
@@ -254,7 +320,7 @@ export class UploadService {
         Prefix: folderName,
       };
 
-       s3.listObjects(params, async (err, data) => {
+      s3.listObjects(params, async (err, data) => {
         if (err) {
           reject(err);
         } else {
@@ -266,21 +332,46 @@ export class UploadService {
   }
 
   public async getObjectsFromMinio(folderName) {
-    return new Promise(async(resolve,reject)=>{
-      let minioFolderNames = []
-       await this.minioClient.listObjectsV2(process.env.MINIO_BUCKET, folderName, true)
-        .on('data', (obj) => {         
-          minioFolderNames.push(obj.name?.split('/')[2]);
+    return new Promise(async (resolve, reject) => {
+      let minioFolderNames = [];
+      await this.minioClient
+        .listObjectsV2(process.env.MINIO_BUCKET, folderName, true)
+        .on("data", (obj) => {
+          minioFolderNames.push(obj.name?.split("/")[2]);
         })
-        .on('error', (err) => {
-          console.error('Error:', err);
+        .on("error", (err) => {
+          console.error("Error:", err);
           reject(err);
         })
-        .on('end', () => {
-          console.log("the object names are:",minioFolderNames);
-          resolve(minioFolderNames)
+        .on("end", () => {
+          console.log("the object present inside folder is:", minioFolderNames);
+          resolve(minioFolderNames);
         });
     });
+  }
+
+  public async getObjectsFromOracle(folderName) {
+    try{
+      let objectNames = [];
+      let fileNamesWithFullPath = [];
+      const listObjectsRequest = {
+        namespaceName: process.env.ORACLE_NAMESPACE,
+        bucketName: process.env.ORACLE_BUCKET,
+        prefix: folderName, // Replace with your folder prefix
+      };
+      const listObjectsResponse =
+        await this.oracleObjectStorageClient.listObjects(listObjectsRequest);
+      for (const object of listObjectsResponse?.listObjects?.objects) {
+        let fileName = object?.name?.split("/")[2];
+        fileNamesWithFullPath.push(object?.name);
+        objectNames.push(fileName);
+      }
+      return objectNames;
+    }catch(error){
+      console.error('An error occurred while retrieving objects from Oracle Object Storage:', error);
+      throw new Error('Failed to retrieve objects from Oracle Object Storage');
+    }
+   
   }
 
   public async uploadBlob(
@@ -381,9 +472,8 @@ export class UploadService {
     } else {
       throw new Error(
         "Oracle object storage not initialized ... Current store Config = " +
-        process.env.STORAGE_TYPE
+          process.env.STORAGE_TYPE
       );
     }
   }
-
 }

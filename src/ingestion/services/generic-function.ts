@@ -82,7 +82,7 @@ export class GenericFunction {
                 if (this.currentlyLockedFiles[fileName]) {
                     await this.processSleep(10);
                 } else {
-                    // console.log('Lock released ');
+                    console.log('Lock released ');
                     break;
                 }
             } while (true);
@@ -96,7 +96,7 @@ export class GenericFunction {
                 await csv.write(inputArray).pipe(stream);
             }
             // await csv.write(inputArray, { headers: true})
-            //     .pipe(stream)
+            //     .pipe(stream)    
                 stream.on('finish', () => {
                     console.log('CSV file has been written successfully');
                     // delete the lock after writing
