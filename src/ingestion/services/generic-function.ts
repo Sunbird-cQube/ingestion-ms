@@ -82,23 +82,28 @@ export class GenericFunction {
                 if (this.currentlyLockedFiles[fileName]) {
                     await this.processSleep(10);
                 } else {
-                    // console.log('Lock released ');
+                    console.log('Lock released ');
                     break;
                 }
             } while (true);
             // get the lock on the file
             this.currentlyLockedFiles[fileName] = true;
-
+            const fileExists = fs.existsSync(fileName);
             const stream = fs.createWriteStream(fileName,{flags:'a'});
-            await csv.write(inputArray, { headers: true})
-                .pipe(stream)
-                .on('finish', () => {
+            if(!fileExists){
+                await csv.write(inputArray, { headers: true }).pipe(stream);
+            }else{
+                await csv.write(inputArray).pipe(stream);
+            }
+            // await csv.write(inputArray, { headers: true})
+            //     .pipe(stream)    
+                stream.on('finish', () => {
                     console.log('CSV file has been written successfully');
                     // delete the lock after writing
                     delete this.currentlyLockedFiles[fileName];
                     resolve('done')
                 })
-                .on('error', (err) => {
+                stream.on('error', (err) => {
                     console.error('Error writing CSV file:', err);
                     reject(err)
                 });

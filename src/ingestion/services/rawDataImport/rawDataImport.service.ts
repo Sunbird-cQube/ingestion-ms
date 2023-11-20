@@ -69,7 +69,7 @@ export class RawDataImportService {
                     );
                     const promises = objectNames.map(async (objectKey) => {
                       const url = await this.uploadService.fileDownloaderUrl(
-                        objectKey
+                        objectKey,`${key}/${latestDate}`
                       );
                       return url;
                     });
@@ -83,7 +83,7 @@ export class RawDataImportService {
           const data = await Promise.all(result);
           resolve({ code: 200, data: data });
         } catch (error) {
-          reject({ code: "", error: "" });
+          reject({ code:400, error:error });
         }
       });
     }
