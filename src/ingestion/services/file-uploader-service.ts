@@ -215,7 +215,7 @@ export class UploadService {
         await this.oracleObjectStorageClient.createPreauthenticatedRequest(
           createRequest
         );
-      return response?.preauthenticatedRequest?.fullPath;
+        return response?.preauthenticatedRequest['fullPath'];
     }
   }catch(error){
     throw new Error('File download URL generation failed');
