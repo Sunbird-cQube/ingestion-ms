@@ -22,7 +22,6 @@ export class FileStatusService {
                             "type": "string",
                             "enum": [
                                 "event",
-                                "dataset",
                                 "dimension"
                             ],
                             "shouldnotnull": true
