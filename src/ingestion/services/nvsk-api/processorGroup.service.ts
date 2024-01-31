@@ -1,14 +1,20 @@
 import { Injectable } from "@nestjs/common";
+import { DateService } from "../dateService";
 
 @Injectable()
 export class processorGroupSelectionForCloudService {
+  constructor(private dateService:DateService){
+
+  }
   getProcessorGroupArrayForCloudStorage() {
     if (process.env.STORAGE_TYPE === "oracle") {
+      const currentDate:Date = this.dateService.getCurrentISTTime()
+      const cronExpr = this.dateService.getCronExpression(currentDate);
       return [
         { processor_group_name: "Run_adapters", scheduled_at: "0 */7 * * * ?" },
         {
           processor_group_name: "onestep_dataingestion_oracle",
-          scheduled_at: "0 */9 * * * ?",
+          scheduled_at: `${cronExpr}`,
         },
       ];
     } else if (process.env.STORAGE_TYPE == "local") {
