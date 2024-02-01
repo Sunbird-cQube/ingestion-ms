@@ -21,7 +21,7 @@ export class DataEmissionService {
             const fileSize = File.size;
             let uploadedFileName = File.originalname;
 
-            const queryStr = await IngestionDatasetQuery.createFileTracker(uploadedFileName, 'Emission', uploadedFileName.split('.zip')[0], fileSize);
+            const queryStr = await IngestionDatasetQuery.createFileTracker(uploadedFileName, 'event', uploadedFileName.split('.zip')[0], fileSize);
             const queryResult = await this.DatabaseService.executeQuery(queryStr.query, queryStr.values);
 
             //Unzip the file

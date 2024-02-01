@@ -5,7 +5,6 @@ import { UploadService } from "./../file-uploader-service";
 import { Body, Injectable } from "@nestjs/common";
 import axios from "axios";
 import { IngestionDatasetQuery } from "src/ingestion/query/ingestionQuery";
-import { DateService } from "../dateService";
 import { Request } from "express";
 import { processorGroupSelectionForCloudService } from "./processorGroup.service";
 const csv = require("csv-parser");
@@ -17,7 +16,6 @@ export class NvskApiService {
     private service: GenericFunction,
     private databaseService: DatabaseService,
     private httpService: HttpCustomService,
-    private dateService: DateService,
     private prgoupService: processorGroupSelectionForCloudService
   ) {}
   /* NVSK side implementations */
