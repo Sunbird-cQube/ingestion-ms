@@ -9,7 +9,7 @@ export class EventGrammarValidator {
   }
 
   verify() {
-    const errors: any[] = [];
+    let errors: any[] = [];
     // check for length
     const len = this.content.length;
     if (len !== 5) {
@@ -22,12 +22,33 @@ export class EventGrammarValidator {
     }
 
     // check for equal number of columns in each row
-    const colCount = [];
-    this.content.forEach((row) => {
-      colCount.push(row.split(',').length);
+    let prevColCount;
+    let colCountMatchFailed = false;
+    this.content.forEach((row, lineNo) => {
+      if (lineNo === 0) {
+        prevColCount = row.split(',').length;
+      }
+
+      if (lineNo > 0 && !colCountMatchFailed && prevColCount !== row.split(',').length) {
+        colCountMatchFailed = true;
+      }
+
+      if (lineNo === 2) {
+        row.split(',').forEach((dataType: string, index: number) => {
+          if (!['string', 'integer', 'date', 'number'].includes(dataType.trim())) {
+            errors.push({
+              row: lineNo,
+              col: index,
+              errorCode: 1002,
+              error: `Invalid data type: ${dataType}. Supported data types are: string, integer, date, number`,
+              data: dataType,
+            });
+          }
+        });
+      }
     });
 
-    if (colCount.every((val) => val === colCount[0]) === false) {
+    if (colCountMatchFailed) {
       errors.push({
         row: 0,
         col: 0,
@@ -35,25 +56,42 @@ export class EventGrammarValidator {
         error: 'Invalid CSV file: all rows should have equal number of columns',
       });
     }
+    
     // TODO: add check for dimension names
+    const dimensionNameRow = this.content[0].split(',');
+    const dimensionKeyNameRow = this.content[1].split(',');
+    const dimensionErrors = dimensionNameRow.map((dimensionName: string, index: number) => {
+      if (dimensionName === '' && dimensionKeyNameRow[index] === '') {
+        return null;
+      } else if (dimensionName === '') {
+        return {
+          row: 0,
+          col: index,
+          errorCode: 1004,
+          error: `Dimension name is missing for dimension key:${dimensionKeyNameRow[index]}`,
+          data: this.content[0],
+        }
+      } else if (dimensionKeyNameRow[index] === '') {
+        return {
+          row: 0,
+          col: index,
+          errorCode: 1004,
+          error: `Dimension key name is missing for dimension:${dimensionName}`,
+          data: this.content[1],
+        }
+      }
+    }).filter(error => error !== null && error !== undefined);
+
+    if (dimensionErrors.length > 0) {
+      errors = [...errors, ...dimensionErrors];
+    }
 
     // TODO: add check for dimension key names
 
     // Check for supported data types
-    const dataTypeRow = this.content[2];
     // const dataTypeErrors = [];
 
-    dataTypeRow.split(',').forEach((dataType: string, index: number) => {
-      if (!['string', 'integer', 'date'].includes(dataType.trim())) {
-        errors.push({
-          row: 1,
-          col: index,
-          errorCode: 1002,
-          error: `Invalid data type: ${dataType}. Supported data types are: string, integer, date`,
-          data: dataType,
-        });
-      }
-    });
+    
 
     // errors.push({
     //   row: 3,
@@ -72,7 +110,7 @@ export class EventGrammarValidator {
           row: 4,
           col: idx,
           errorCode: 1004,
-          error: `Dimension Grammar Specification Error: Wrong values in fieldType row, allowed values are 1. dimension 2.timeDimension 3. metric, but received ${item}`,
+          error: `Dimension Grammar Specification Error: Wrong values in fieldType row, allowed values are 'dimension', 'timeDimension', 'metric', but received ${item}`,
           data: lastRow,
         });
       } else if (item.trim() === 'dimension') {
@@ -88,7 +126,7 @@ export class EventGrammarValidator {
       .split(',')
       .map((item: string) => item.trim());
 
-    dimensionIdxs.forEach((idx: number) => {
+    /* dimensionIdxs.forEach((idx: number) => {
       if (fkKeysRow[idx] !== headerRow[idx]) {
         errors.push(
           {
@@ -107,7 +145,7 @@ export class EventGrammarValidator {
           },
         );
       }
-    });
+    });*/
 
     return errors;
   }
