@@ -401,51 +401,49 @@ export class IngestionController {
     uploadFileN(
         @UploadedFiles()
         files: {
-        grammar?: Express.Multer.File[];
-        data?: Express.Multer.File[];
+            grammar?: Express.Multer.File[];
+            data?: Express.Multer.File[];
         },
         @Body() body: FileValidateRequest,
     ) {
+        const { type } = body;
         this.logger.debug(files.grammar);
         const grammarFilePath = files.grammar[0].path;
 
+        if (!type)
+            throw new BadRequestException('Schema Type is required'); 
+
         if (!grammarFilePath || !fs.existsSync(grammarFilePath))
-        throw new BadRequestException('Grammar file is required');
+            throw new BadRequestException('Grammar file is required');
 
         const grammarContent = fs.readFileSync(grammarFilePath, 'utf8');
         const dataFilePath = files?.data ? files?.data[0]?.path : undefined;
 
         let resp;
-        switch (body.type.trim()) {
-        case FileType.DimensionGrammar:
-            resp =
-            this.validatorService.checkDimensionGrammarForValidationErrors(
-                grammarContent,
-            );
+        switch (type.trim()) {
+        case FileType.Dimension:
+            if (!dataFilePath) {
+                resp = this.validatorService.checkDimensionGrammarForValidationErrors(
+                    grammarContent,
+                );
+            } else {
+                resp = this.validatorService.checkDimensionDataForValidationErrors(
+                    grammarContent,
+                    fs.readFileSync(dataFilePath, 'utf8'),
+                );
+            }
             break;
-        case FileType.DimensionData:
-            if (!dataFilePath || !fs.existsSync(dataFilePath))
-            throw new BadRequestException('Data file is required');
-
-            resp = this.validatorService.checkDimensionDataForValidationErrors(
-            grammarContent,
-            fs.readFileSync(dataFilePath, 'utf8'),
-            );
-            break;
-        case FileType.EventGrammar:
-            resp =
-            this.validatorService.checkEventGrammarForValidationErrors(
-                grammarContent,
-            );
-            break;
-        case FileType.EventData:
-            if (!dataFilePath || !fs.existsSync(dataFilePath))
-            throw new BadRequestException('Data file is required');
-
-            resp = this.validatorService.checkEventDataForValidationErrors(
-            grammarContent,
-            fs.readFileSync(dataFilePath, 'utf8'),
-            );
+        case FileType.Event:
+            if (!dataFilePath) {
+                resp = this.validatorService.checkEventGrammarForValidationErrors(
+                    grammarContent,
+                );
+            } else {
+                resp = this.validatorService.checkEventDataForValidationErrors(
+                    grammarContent,
+                    fs.readFileSync(dataFilePath, 'utf8'),
+                );
+            }
             break;
         default:
             throw new BadRequestException('Invalid file type');
