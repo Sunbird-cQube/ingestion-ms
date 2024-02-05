@@ -1,8 +1,11 @@
 export enum FileType {
-  DimensionGrammar = 'dimension-grammar',
-  DimensionData = 'dimension-data',
-  EventGrammar = 'event-grammar',
-  EventData = 'event-data',
+  Dimension = 'dimension',
+  Event = 'event',
+}
+
+export enum ValidationType {
+  Grammar = 'grammar',
+  Data = 'data',
 }
 
 export class FileValidateRequest {
